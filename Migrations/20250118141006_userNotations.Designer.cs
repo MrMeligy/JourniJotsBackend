@@ -4,6 +4,7 @@ using Backend.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Backend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250118141006_userNotations")]
+    partial class userNotations
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -125,21 +128,6 @@ namespace Backend.Migrations
                     b.ToTable("Hotels");
                 });
 
-            modelBuilder.Entity("Backend.Models.Interests", b =>
-                {
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("ActivityId")
-                        .HasColumnType("int");
-
-                    b.HasKey("UserId", "ActivityId");
-
-                    b.HasIndex("ActivityId");
-
-                    b.ToTable("Interests");
-                });
-
             modelBuilder.Entity("Backend.Models.Like", b =>
                 {
                     b.Property<int>("PostId")
@@ -240,10 +228,6 @@ namespace Backend.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<int>("UserId")
                         .HasColumnType("int");
 
@@ -299,7 +283,7 @@ namespace Backend.Migrations
                     b.ToTable("Trip_Restaurants");
                 });
 
-            modelBuilder.Entity("User", b =>
+            modelBuilder.Entity("Backend.Models.User", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -319,6 +303,9 @@ namespace Backend.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("FavFood")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FavPlace")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("FirstName")
@@ -356,7 +343,7 @@ namespace Backend.Migrations
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
-                    b.HasOne("User", "User")
+                    b.HasOne("Backend.Models.User", "User")
                         .WithMany("Comments")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -369,13 +356,13 @@ namespace Backend.Migrations
 
             modelBuilder.Entity("Backend.Models.Follow", b =>
                 {
-                    b.HasOne("User", "User1")
+                    b.HasOne("Backend.Models.User", "User1")
                         .WithMany("Follow")
                         .HasForeignKey("UserId1")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("User", "User2")
+                    b.HasOne("Backend.Models.User", "User2")
                         .WithMany("Followed")
                         .HasForeignKey("UserId2")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -386,25 +373,6 @@ namespace Backend.Migrations
                     b.Navigation("User2");
                 });
 
-            modelBuilder.Entity("Backend.Models.Interests", b =>
-                {
-                    b.HasOne("Backend.Models.Activity", "Activity")
-                        .WithMany()
-                        .HasForeignKey("ActivityId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("User", "User")
-                        .WithMany("Interests")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Activity");
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("Backend.Models.Like", b =>
                 {
                     b.HasOne("Backend.Models.Post", "Post")
@@ -413,7 +381,7 @@ namespace Backend.Migrations
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
-                    b.HasOne("User", "User")
+                    b.HasOne("Backend.Models.User", "User")
                         .WithMany("Likes")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -426,7 +394,7 @@ namespace Backend.Migrations
 
             modelBuilder.Entity("Backend.Models.Post", b =>
                 {
-                    b.HasOne("User", "User")
+                    b.HasOne("Backend.Models.User", "User")
                         .WithMany("Posts")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -448,7 +416,7 @@ namespace Backend.Migrations
 
             modelBuilder.Entity("Backend.Models.Trip", b =>
                 {
-                    b.HasOne("User", "User")
+                    b.HasOne("Backend.Models.User", "User")
                         .WithMany("Trips")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -532,15 +500,13 @@ namespace Backend.Migrations
                     b.Navigation("Restaurants");
                 });
 
-            modelBuilder.Entity("User", b =>
+            modelBuilder.Entity("Backend.Models.User", b =>
                 {
                     b.Navigation("Comments");
 
                     b.Navigation("Follow");
 
                     b.Navigation("Followed");
-
-                    b.Navigation("Interests");
 
                     b.Navigation("Likes");
 

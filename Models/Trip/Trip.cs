@@ -4,6 +4,7 @@
     {
         public int Id { get; set; }
         public int UserId { get; set; }
+        public string Title { get; set; }
         public User User { get; set; }
         public ICollection<Trip_Activity> Activities { get; set; } = new List<Trip_Activity>();
         public ICollection<Trip_Restaurant> Restaurants { get; set; } = new List<Trip_Restaurant>();
