@@ -2,7 +2,7 @@
 
 namespace Backend.Dtos
 {
-    public class CreatingUserDto
+    public class RegisterDto
     {
         [Required(ErrorMessage = "Email is Requierd")]
         [RegularExpression(@"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", ErrorMessage = "Invalid email address")]
@@ -29,7 +29,7 @@ namespace Backend.Dtos
 
         [Required(ErrorMessage = "City is Required")]
         public string City { get; set; }
-        public string Fav_Food { get; set; }
+        public string? Fav_Food { get; set; }
 
 
     }

@@ -28,7 +28,6 @@ public class User
     public string? FavFood { get; set; }
 
 
-    public ICollection<Interests> Interests { get; set; } = new List<Interests>();
     public ICollection<Follow> Follow { get; set; } = new List<Follow>();
     public ICollection<Follow> Followed { get; set; } = new List<Follow>();
     public ICollection<Post> Posts { get; set; } = new List<Post>();

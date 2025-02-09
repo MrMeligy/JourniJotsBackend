@@ -6,7 +6,6 @@ namespace Backend.Models
     {
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
         public DbSet<User> Users { get; set; }
-        public DbSet<Interests> Interests { get; set; }
         public DbSet<Follow> Followings { get; set; }
         public DbSet<Trip> Trips { get; set; }
         public DbSet<Trip_Activity> Trip_Activities { get; set; }
@@ -21,10 +20,6 @@ namespace Backend.Models
         public DbSet<Comment> PostComments { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            //Composite Key of Interests Table
-            modelBuilder.Entity<Interests>()
-                .HasKey(k => new { k.UserId, k.ActivityId });
-
             //Composite Key of Follow Table
             modelBuilder.Entity<Follow>()
                 .HasKey(k => new { k.UserId1, k.UserId2 });

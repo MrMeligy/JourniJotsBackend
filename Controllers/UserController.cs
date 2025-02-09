@@ -1,14 +1,18 @@
 ﻿using Backend.Dtos;
 using Backend.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace Backend.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class UserController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
@@ -16,257 +20,298 @@ namespace Backend.Controllers
         {
             _context = context;
         }
-        [HttpPost("UserRegister")]
-        public async Task<IActionResult> CreateUserAsync([FromBody] CreatingUserDto dto)
+        [HttpPost("SetProfilePicture")]
+        public async Task<IActionResult> ProfilePic(IFormFile picture)
         {
-            var user = new User
+            var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
             {
-                UserName = dto.UserName,
-                Email = dto.Email,
-                Password = dto.Password,
-                FirstName = dto.FirstName,
-                LastName = dto.LastName,
-                City = dto.City,
-                DateOfBirth = dto.DateOfBirth,
-            };
-            if (dto.Fav_Food != null)
-            {
-                user.FavFood = dto.Fav_Food;
+                return Unauthorized(new { message = "Invalid user ID in token" });
             }
-            await _context.Users.AddAsync(user);
-            _context.SaveChanges();
-            return Ok(user);
-        }
-        [HttpPost("Interests")]
-        public async Task<IActionResult> AddInterestsAsync(int userId, int activityId)
-        {
-            var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == userId);
-            var activity = await _context.Activities.FirstOrDefaultAsync(x => x.Id == activityId);
-            if (user == null || activity == null)
-            {
-                return NotFound();
-            }
-            var interest = new Interests
-            {
-                UserId = userId,
-                ActivityId = activityId,
-            };
-            await _context.Interests.AddAsync(interest);
-            _context.SaveChanges();
-            return Ok(interest);
-        }
-
-        [HttpPost("LogIn")]
-        public async Task<IActionResult> LogIn([FromBody] string email, string password)
-        {
-            var user = await _context.Users.FirstOrDefaultAsync(x => x.Email == email && x.Password == password);
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
             if (user == null)
+                return BadRequest("User Not Exists");
+            if (user.ProfilePicture != null)
             {
-                return NotFound();
+                user.ProfilePicture = null;
+                await _context.SaveChangesAsync();
             }
-            return Ok(user);
+
+            try
+            {
+                using (var stream = new MemoryStream())
+                {
+                    await picture.CopyToAsync(stream);
+                    user.ProfilePicture = stream.ToArray();
+                    await _context.SaveChangesAsync();
+                    return Ok(user);
+                }
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.InnerException);
+            }
+
         }
 
         [HttpPost("Follow")]
-        public async Task<IActionResult> FollowAsync(int userId, int followedId)
+        public async Task<IActionResult> FollowAsync(int followedId)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == userId);
-            var followed = await _context.Users.FirstOrDefaultAsync(x => x.Id == followedId);
-            if (user == null || followed == null)
+            var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
             {
-                return NotFound();
+                return Unauthorized(new { message = "Invalid user ID in token" });
             }
-            var follow = new Follow
+            try
             {
-                UserId1 = userId,
-                UserId2 = followedId,
-            };
-            await _context.Followings.AddAsync(follow);
-            _context.SaveChanges();
-            return Ok(follow);
-        }
-        [HttpPost("Unfollow")]
-        public async Task<IActionResult> UnfollowAsync(int userId, int followedId)
-        {
-            var follow = await _context.Followings.FirstOrDefaultAsync(x => x.UserId1 == userId && x.UserId2 == followedId);
-            if (follow == null)
-            {
-                return NotFound();
+
+                var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == userId);
+                var followed = await _context.Users.FirstOrDefaultAsync(x => x.Id == followedId);
+                if (user == null || followed == null)
+                {
+                    return BadRequest("User Not Found");
+                }
+                if (userId == followedId)
+                    return BadRequest("You Can't Follow Your Self");
+                var existingFollow = await _context.Followings
+                .FirstOrDefaultAsync(f => f.UserId1 == userId && f.UserId2 == followedId);
+
+                if (existingFollow != null)
+                {
+                    _context.Followings.Remove(existingFollow);
+                    _context.SaveChanges();
+                    return Ok("You Don't Follow This User Now");
+                }
+                var follow = new Follow
+                {
+                    UserId1 = userId,
+                    UserId2 = followedId,
+                };
+                await _context.Followings.AddAsync(follow);
+                await _context.SaveChangesAsync();
+                return Ok("You Follow This User");
             }
-            _context.Followings.Remove(follow);
-            _context.SaveChanges();
-            return Ok(follow);
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.InnerException?.Message);
+            }
+
         }
+
         [HttpPost("RateRestaurant")]
-        public async Task<IActionResult> RateAsync(int userId, int restId, int rate)
+        public async Task<IActionResult> RateAsync([FromBody] RateDto dto)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == userId);
-            var rest = await _context.Restaurants.FirstOrDefaultAsync(x => x.Id == restId);
-            if (user == null || rest == null)
+            var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
             {
-                return NotFound();
+                return Unauthorized(new { message = "Invalid user ID in token" });
             }
-            rest.Rating = (rest.Rating * rest.RatingCount + rate) / (rest.RatingCount + 1);
-            rest.RatingCount++;
-            _context.SaveChanges();
-            return Ok(rest);
+            try
+            {
+                var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == userId);
+                var rest = await _context.Restaurants.FirstOrDefaultAsync(x => x.Id == dto.placeId);
+                if (user == null || rest == null)
+                {
+                    return NotFound();
+                }
+                rest.Rating = (rest.Rating * rest.RatingCount + dto.rate) / (rest.RatingCount + 1);
+                rest.RatingCount++;
+                _context.SaveChanges();
+                return Ok(new { restauran = rest.Name, rating = rest.Rating, ratingCount = rest.RatingCount });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.InnerException?.Message);
+            }
         }
         [HttpPost("RateHotel")]
-        public async Task<IActionResult> RateHotelAsync(int userId, int hotelId, int rate)
+        public async Task<IActionResult> RateHotelAsync([FromBody] RateDto dto)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == userId);
-            var hotel = await _context.Hotels.FirstOrDefaultAsync(x => x.Id == hotelId);
-            if (user == null || hotel == null)
+            var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
             {
-                return NotFound();
+                return Unauthorized(new { message = "Invalid user ID in token" });
             }
-            hotel.Rating = (hotel.Rating * hotel.RatingCount + rate) / (hotel.RatingCount + 1);
-            hotel.RatingCount++;
-            _context.SaveChanges();
-            return Ok(hotel);
+            try
+            {
+                var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == userId);
+                var hotel = await _context.Hotels.FirstOrDefaultAsync(x => x.Id == dto.placeId);
+                if (user == null || hotel == null)
+                {
+                    return NotFound();
+                }
+                hotel.Rating = (hotel.Rating * hotel.RatingCount + dto.rate) / (hotel.RatingCount + 1);
+                hotel.RatingCount++;
+                _context.SaveChanges();
+                return Ok(new { restauran = hotel.Name, rating = hotel.Rating, ratingCount = hotel.RatingCount });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.InnerException?.Message);
+            }
         }
+
         [HttpPost("RateActivity")]
-        public async Task<IActionResult> RateActivityAsync(int userId, int actId, int rate)
+        public async Task<IActionResult> RateActivityAsync([FromBody] RateDto dto)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == userId);
-            var act = await _context.Activities.FirstOrDefaultAsync(x => x.Id == actId);
-            if (user == null || act == null)
+            var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
             {
-                return NotFound();
+                return Unauthorized(new { message = "Invalid user ID in token" });
             }
-            act.Rating = (act.Rating * act.RatingCount + rate) / (act.RatingCount + 1);
-            act.RatingCount++;
-            _context.SaveChanges();
-            return Ok(act);
-        }
-
-        [HttpPatch("UpdateUser")]
-        public async Task<IActionResult> UpdateUserAsync(int id, [FromBody] CreatingUserDto dto)
-        {
-            var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == id);
-            if (user == null)
+            try
             {
-                return NotFound();
+                var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == userId);
+                var act = await _context.Activities.FirstOrDefaultAsync(x => x.Id == dto.placeId);
+                if (user == null || act == null)
+                {
+                    return NotFound();
+                }
+                act.Rating = (act.Rating * act.RatingCount + dto.rate) / (act.RatingCount + 1);
+                act.RatingCount++;
+                _context.SaveChanges();
+                return Ok(new { restauran = act.Name, rating = act.Rating, ratingCount = act.RatingCount });
             }
-            if (dto.UserName != null)
+            catch (Exception ex)
             {
-                user.UserName = dto.UserName;
+                return StatusCode(500, ex.InnerException?.Message);
             }
-            if (dto.Email != null)
-            {
-                user.Email = dto.Email;
-            }
-            if (dto.Password != null)
-            {
-                user.Password = dto.Password;
-            }
-            if (dto.UserName != null)
-            {
-                user.UserName = dto.UserName;
-            }
-            if (dto.City != null)
-            {
-                user.City = dto.City;
-            }
-
-            _context.SaveChanges();
-            return Ok(user);
         }
 
         [HttpGet("AllUsers")]
         public async Task<IActionResult> GetAllUsersAsync()
         {
-            var users = await _context.Users.ToListAsync();
+            var users = await _context.Users.Select(u => new
+            {
+                User = u,
+                Followers = u.Followed.Count()
+            }).ToListAsync();
             return Ok(users);
         }
         [HttpGet("UserById")]
         public async Task<IActionResult> GetUserByIdAsync(int id)
         {
-            var user = await _context.Users
-        .Include(u => u.Followed) // Include the Followed collection
-        .FirstOrDefaultAsync(x => x.Id == id);
-
-            if (user == null)
+            try
             {
-                return NotFound();
+                var user = await _context.Users
+            .Include(u => u.Followed) // Include the Followed collection
+            .FirstOrDefaultAsync(x => x.Id == id);
+
+                if (user == null)
+                {
+                    return NotFound();
+                }
+
+                // Get the number of followers
+                int numberOfFollowers = user.Followed.Count;
+                List<Post> posts = _context.Posts.Where(p => p.UserId == id).ToList();
+                // Return the user along with the number of followers
+                var response = new
+                {
+                    ProfilePicture = user.ProfilePicture,
+                    posts = posts,
+                    NumberOfFollowers = numberOfFollowers
+                };
+
+                return Ok(response);
             }
-
-            // Get the number of followers
-            int numberOfFollowers = user.Followed.Count;
-
-            // Return the user along with the number of followers
-            var response = new
+            catch (Exception ex)
             {
-                User = user,
-                NumberOfFollowers = numberOfFollowers
-            };
-
-            return Ok(response);
+                return StatusCode(500, ex.InnerException?.Message);
+            }
         }
 
         [HttpGet("SearchUser")]
         public async Task<IActionResult> GetUserByNameAsync(string name)
         {
-            var users = await _context.Users
-            .Where(u => EF.Functions.Like(u.UserName, $"%{name}%"))
-            .Select(u => new
+            try
             {
-                u.Id,
-                u.UserName,
-                u.City,
-            })
-            .ToListAsync();
-            return Ok(users);
+                var users = await _context.Users
+                .Where(u => EF.Functions.Like(u.UserName, $"%{name}%"))
+                .Select(u => new
+                {
+                    u.Id,
+                    u.UserName,
+                    u.City,
+                })
+                .ToListAsync();
+                return Ok(users);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
         [HttpGet("SearchRestaurant")]
         public async Task<IActionResult> GetRest(string name)
         {
-            var rests = await _context.Restaurants
-                .Where(r => EF.Functions.Like(r.Name, $"%{name}%"))
-                .Select(r => new
-                {
-                    r.Id,
-                    r.Name,
-                    r.Rating,
-                    r.RatingCount,
-                    r.Longitude,
-                    r.Latitude,
-                    r.Category
-                }).ToListAsync();
-            return Ok(rests);
+            try
+            {
+                var rests = await _context.Restaurants
+                    .Where(r => EF.Functions.Like(r.Name, $"%{name}%"))
+                    .Select(r => new
+                    {
+                        r.Id,
+                        r.Name,
+                        r.Rating,
+                        r.RatingCount,
+                        r.Longitude,
+                        r.Latitude,
+                        r.Category
+                    }).ToListAsync();
+                return Ok(rests);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         [HttpGet("SearchHotel")]
         public async Task<IActionResult> GetHotel(string name)
         {
-            var hotels = await _context.Hotels
-                .Where(r => EF.Functions.Like(r.Name, $"%{name}%"))
-                .Select(r => new
-                {
-                    r.Id,
-                    r.Name,
-                    r.Rating,
-                    r.RatingCount,
-                    r.Longitude,
-                    r.Latitude
-                }).ToListAsync();
-            return Ok(hotels);
+            try
+            {
+                var hotels = await _context.Hotels
+                    .Where(r => EF.Functions.Like(r.Name, $"%{name}%"))
+                    .Select(r => new
+                    {
+                        r.Id,
+                        r.Name,
+                        r.Rating,
+                        r.RatingCount,
+                        r.Longitude,
+                        r.Latitude
+                    }).ToListAsync();
+                return Ok(hotels);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
-        [HttpGet("SearchActivit")]
+        [HttpGet("SearchActivity")]
         public async Task<IActionResult> GetActivity(string name)
         {
-            var activities = await _context.Activities
-                .Where(r => EF.Functions.Like(r.Name, $"%{name}%"))
-                .Select(r => new
-                {
-                    r.Id,
-                    r.Name,
-                    r.Rating,
-                    r.RatingCount,
-                    r.Longitude,
-                    r.Latitude
-                }).ToListAsync();
-            return Ok(activities);
+            try
+            {
+                var activities = await _context.Activities
+                    .Where(r => EF.Functions.Like(r.Name, $"%{name}%"))
+                    .Select(r => new
+                    {
+                        r.Id,
+                        r.Name,
+                        r.Rating,
+                        r.RatingCount,
+                        r.Longitude,
+                        r.Latitude
+                    }).ToListAsync();
+                return Ok(activities);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         [HttpDelete("DeleteUser")]
@@ -275,12 +320,33 @@ namespace Backend.Controllers
             var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == id);
             if (user == null)
             {
-                return NotFound();
+                return NotFound("User Not Exist");
             }
             _context.Users.Remove(user);
             _context.SaveChanges();
             return Ok(user);
         }
+        [HttpDelete("DeleteProfilePicture")]
+        public async Task<IActionResult> DeleteProfilePicture()
+        {
+            var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+            {
+                return Unauthorized(new { message = "Invalid user ID in token" });
+            }
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null)
+                return BadRequest("User Not Exists");
+            if (user.ProfilePicture != null)
+            {
+                user.ProfilePicture = null;
+                await _context.SaveChangesAsync();
+                return Ok(user);
+            }
+            else
+                return BadRequest("There Is No Profile Picture");
+        }
 
     }
 }
+
