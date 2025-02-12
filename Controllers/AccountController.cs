@@ -86,6 +86,33 @@ namespace Backend.Controllers
                 return BadRequest(ex.Message);
             }
         }
+        [HttpPost("AddIntersts")]
+        [Authorize]
+        public async Task<IActionResult> AddIntersts([FromBody] InterstsDto dto)
+        {
+            var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+            {
+                return Unauthorized(new { message = "Invalid user ID in token" });
+            }
+            try
+            {
+                List<String> intersts = dto.intersts;
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+                if (user == null)
+                    return NotFound();
+                foreach (var intrst in dto.intersts)
+                {
+                    user.Intersts.Add(new Intersts { userId = userId, interst = intrst });
+                }
+                await _context.SaveChangesAsync();
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.InnerException);
+            }
+        }
 
         [HttpPatch("UpdateUser")]
         [Authorize]

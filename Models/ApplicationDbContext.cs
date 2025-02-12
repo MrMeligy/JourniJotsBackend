@@ -6,6 +6,7 @@ namespace Backend.Models
     {
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
         public DbSet<User> Users { get; set; }
+        public DbSet<Intersts> Intersts { get; set; }
         public DbSet<Follow> Followings { get; set; }
         public DbSet<Trip> Trips { get; set; }
         public DbSet<Trip_Activity> Trip_Activities { get; set; }
@@ -35,6 +36,9 @@ namespace Backend.Models
                 .HasKey(k => new { k.PostId, k.UserId });
 
             //Relations of User
+            modelBuilder.Entity<Intersts>()
+                .HasOne(u => u.user)
+                .WithMany(i => i.Intersts);
             //Follow
             modelBuilder.Entity<Follow>()
                 .HasOne(f => f.User1)

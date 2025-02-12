@@ -27,7 +27,7 @@ public class User
     public string City { get; set; }
     public string? FavFood { get; set; }
 
-
+    public ICollection<Intersts> Intersts { get; set; } = new List<Intersts>();
     public ICollection<Follow> Follow { get; set; } = new List<Follow>();
     public ICollection<Follow> Followed { get; set; } = new List<Follow>();
     public ICollection<Post> Posts { get; set; } = new List<Post>();
