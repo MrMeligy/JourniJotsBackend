@@ -27,9 +27,6 @@ namespace Backend.Dtos
         [Required(ErrorMessage = "Date of birth is Required")]
         public DateOnly DateOfBirth { get; set; }
 
-        [Required(ErrorMessage = "City is Required")]
-        public string City { get; set; }
-        public string? Fav_Food { get; set; }
 
 
     }

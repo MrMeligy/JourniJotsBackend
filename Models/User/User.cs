@@ -23,9 +23,6 @@ public class User
     public string UserName { get; set; }
     [Required]
     public DateOnly DateOfBirth { get; set; }
-    [Required]
-    public string City { get; set; }
-    public string? FavFood { get; set; }
 
     public ICollection<Intersts> Intersts { get; set; } = new List<Intersts>();
     public ICollection<Follow> Follow { get; set; } = new List<Follow>();

@@ -232,7 +232,7 @@ namespace Backend.Controllers
                 {
                     u.Id,
                     u.UserName,
-                    u.City,
+
                 })
                 .ToListAsync();
                 return Ok(users);

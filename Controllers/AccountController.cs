@@ -47,9 +47,9 @@ namespace Backend.Controllers
                     Password = BCrypt.Net.BCrypt.HashPassword(dto.Password),
                     FirstName = dto.FirstName,
                     LastName = dto.LastName,
-                    City = dto.City,
+
                     DateOfBirth = dto.DateOfBirth,
-                    FavFood = dto.Fav_Food
+
                 };
 
                 await _context.Users.AddAsync(user);
@@ -159,14 +159,7 @@ namespace Backend.Controllers
                 {
                     user.Password = BCrypt.Net.BCrypt.HashPassword(dto.Password); // Hash the password
                 }
-                if (!string.IsNullOrEmpty(dto.City))
-                {
-                    user.City = dto.City;
-                }
-                if (!string.IsNullOrEmpty(dto.Fav_Food))
-                {
-                    user.FavFood = dto.Fav_Food;
-                }
+
                 await _context.SaveChangesAsync();
                 return Ok(user);
             }
