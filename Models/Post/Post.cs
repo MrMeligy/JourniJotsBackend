@@ -6,6 +6,7 @@
         public int UserId { get; set; }
         public string Content { get; set; }
         public string Category { get; set; }
+        public DateTime CreatedAt { get; set; }
         public User User { get; set; }
         public ICollection<Like> PostLikes { get; set; } = new List<Like>();
         public ICollection<Comment> PostComments { get; set; } = new List<Comment>();

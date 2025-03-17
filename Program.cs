@@ -2,12 +2,13 @@
 using Backend.Extensions;
 using Backend.Models;
 using Microsoft.EntityFrameworkCore;
+using System;
 
 namespace Backend
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 
@@ -44,7 +45,19 @@ namespace Backend
 
             app.MapControllers();
 
+            /*using (var scope = app.Services.CreateScope())
+            {
+                var services = scope.ServiceProvider;
+                var context = services.GetRequiredService<ApplicationDbContext>();
+
+                string filePath = "E:/Graduation Project/Models/egypt_tourism_posts_updated.csv";
+
+                var importer = new ImportPosts(context, filePath);
+                await importer.ImportAsync();
+            }*/
+
             app.Run();
+            return Task.CompletedTask;
         }
     }
 }

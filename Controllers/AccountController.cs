@@ -171,9 +171,9 @@ namespace Backend.Controllers
 
         [HttpGet("ValidToken")]
         [Authorize]
-        public async Task<ActionResult<bool>> ValidToken()
+        public Task<ActionResult<bool>> ValidToken()
         {
-            return Ok(true);
+            return Task.FromResult<ActionResult<bool>>(Ok(true));
         }
 
 

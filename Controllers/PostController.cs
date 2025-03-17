@@ -38,6 +38,7 @@ namespace Backend.Controllers
                 {
                     UserId = userId,
                     Content = dto.Content,
+                    CreatedAt = DateTime.Now,
                 };
                 await _context.Posts.AddAsync(post);
                 _context.SaveChanges();
