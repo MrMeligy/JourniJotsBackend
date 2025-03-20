@@ -20,39 +20,7 @@ namespace Backend.Controllers
         {
             _context = context;
         }
-        [HttpPost("SetProfilePicture")]
-        public async Task<IActionResult> ProfilePic(IFormFile picture)
-        {
-            var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
-            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
-            {
-                return Unauthorized(new { message = "Invalid user ID in token" });
-            }
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
-            if (user == null)
-                return BadRequest("User Not Exists");
-            if (user.ProfilePicture != null)
-            {
-                user.ProfilePicture = null;
-                await _context.SaveChangesAsync();
-            }
 
-            try
-            {
-                using (var stream = new MemoryStream())
-                {
-                    await picture.CopyToAsync(stream);
-                    user.ProfilePicture = stream.ToArray();
-                    await _context.SaveChangesAsync();
-                    return Ok(user);
-                }
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.InnerException);
-            }
-
-        }
 
         [HttpPost("Follow")]
         public async Task<IActionResult> FollowAsync(int followedId)

@@ -24,9 +24,6 @@ namespace Backend.Dtos
         [MaxLength(30, ErrorMessage = "User name cannot exceed 50 characters")]
         public string UserName { get; set; }
 
-        [Required(ErrorMessage = "Date of birth is Required")]
-        public DateOnly DateOfBirth { get; set; }
-
 
 
     }

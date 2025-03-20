@@ -23,6 +23,8 @@ namespace Backend.Controllers
             _context = context;
             _configuration = configuration;
         }
+
+        //Register Endpoint
         [HttpPost("Register")]
         public async Task<IActionResult> CreateUserAsync([FromBody] RegisterDto dto)
         {
@@ -48,20 +50,85 @@ namespace Backend.Controllers
                     FirstName = dto.FirstName,
                     LastName = dto.LastName,
 
-                    DateOfBirth = dto.DateOfBirth,
-
                 };
 
                 await _context.Users.AddAsync(user);
                 await _context.SaveChangesAsync();
 
                 var token = GenerateToken(user);
-                return Ok(token);
+                var response = new
+                {
+                    message = "User SignUp Successfully",
+                    token = token,
+                    user = new
+                    {
+                        email = user.Email,
+                        userName = user.UserName,
+                        firstName = user.FirstName,
+                        lastName = user.LastName,
+                        profilePicture = user.ProfilePicture,
+                        intersts = user.Intersts.Select(i => i.interst).ToList(),
+                        follow = user.Follow.Select(f => f.UserId2).ToList(),
+                        followed = user.Followed.Select(f => f.UserId1).ToList(),
+                        posts = user.Posts.Select(p => new
+                        {
+                            id = p.Id,
+                            content = p.Content,
+                            date = p.CreatedAt,
+                            likes = p.PostLikes.Count,
+                            comments = p.PostComments.Count,
+                        }).ToList()
+                    }
+                };
+
+                return Ok(response);
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                var response = new
+                {
+                    message = ex.Message,
+                };
+                return BadRequest(response);
             }
+        }
+
+
+        [HttpPost("UploadProfilePicture")]
+        public async Task<IActionResult> ProfilePic(IFormFile picture)
+        {
+            var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+            {
+                return Unauthorized(new { message = "Invalid user ID in token" });
+            }
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null)
+                return BadRequest(new { message = "User Not Exists" });
+            if (user.ProfilePicture != null)
+            {
+                user.ProfilePicture = null;
+                await _context.SaveChangesAsync();
+            }
+
+            try
+            {
+                using (var stream = new MemoryStream())
+                {
+                    await picture.CopyToAsync(stream);
+                    user.ProfilePicture = stream.ToArray();
+                    await _context.SaveChangesAsync();
+                    return Ok(new
+                    {
+                        profilePic = user.ProfilePicture
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.InnerException);
+            }
+
         }
 
         [HttpPost("LogIn")]
@@ -73,24 +140,64 @@ namespace Backend.Controllers
             }
             try
             {
-                var user = await _context.Users.FirstOrDefaultAsync(x => x.Email == dto.email);
+                var user = await _context.Users
+                    .Include(u => u.Intersts)
+                    .Include(u => u.Follow)
+                    .Include(u => u.Followed)
+                    .Include(u => u.Posts)
+                    .Include(u => u.Comments)
+                    .Include(u => u.Likes)
+                    .Include(u => u.Trips)
+                    .FirstOrDefaultAsync(x => x.Email == dto.email);
                 if (user == null || !Verify(dto.password, user.Password))
                 {
-                    return BadRequest("The Email or Password Is Invalid");
+                    return BadRequest(new { message = "The Email or Password Is Invalid" });
                 }
                 var token = GenerateToken(user);
-                return Ok(token);
+                var response = new
+                {
+                    message = "User Logged In Successfully",
+                    token = token,
+                    user = new
+                    {
+                        email = user.Email,
+                        userName = user.UserName,
+                        firstName = user.FirstName,
+                        lastName = user.LastName,
+                        profilePicture = user.ProfilePicture,
+                        intersts = user.Intersts.Select(i => i.interst).ToList(),
+                        follow = user.Follow.Select(f => f.UserId2).ToList(),
+                        followed = user.Followed.Select(f => f.UserId1).ToList(),
+                        posts = user.Posts.Select(p => new
+                        {
+                            id = p.Id,
+                            content = p.Content,
+                            date = p.CreatedAt,
+                            likes = p.PostLikes.Count,
+                            comments = p.PostComments.Count,
+                        }).ToList()
+                    }
+
+                };
+                return Ok(response);
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                var response = new
+                {
+                    message = ex.Message,
+                };
+                return BadRequest(response);
             }
         }
+
+        //Add Interests
         [HttpPost("AddIntersts")]
         [Authorize]
         public async Task<IActionResult> AddIntersts([FromBody] InterstsDto dto)
         {
             var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
+            Console.WriteLine(userIdClaim);
             if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
             {
                 return Unauthorized(new { message = "Invalid user ID in token" });
@@ -110,17 +217,28 @@ namespace Backend.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.InnerException);
+                var response = new
+                {
+                    message = ex.InnerException,
+                };
+                return BadRequest(response);
             }
         }
 
+
+        //Update User
         [HttpPatch("UpdateUser")]
         [Authorize]
-        public async Task<IActionResult> UpdateUserAsync([FromBody] UpdateUserDto dto)
+        public async Task<IActionResult> UpdateUserAsync([FromBody] UpdateUserDto dto, IFormFile? picture = null)
         {
             if (!ModelState.IsValid)
             {
-                return BadRequest(new { message = "Invalid data", details = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage) });
+                return BadRequest(new
+                {
+                    message = "Invalid data",
+                    details = ModelState
+                    .Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage)
+                });
             }
 
             try
@@ -137,7 +255,7 @@ namespace Backend.Controllers
                 }
 
 
-                var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == userId);
+                var user = await _context.Users.FindAsync(userId);
                 if (user == null)
                 {
                     return NotFound(new { message = "User not found" });
@@ -159,13 +277,26 @@ namespace Backend.Controllers
                 {
                     user.Password = BCrypt.Net.BCrypt.HashPassword(dto.Password); // Hash the password
                 }
+                if (picture != null)
+                {
+                    using (var stream = new MemoryStream())
+                    {
+                        await picture.CopyToAsync(stream);
+                        user.ProfilePicture = stream.ToArray();
+                        await _context.SaveChangesAsync();
+                    }
+                }
 
                 await _context.SaveChangesAsync();
                 return Ok(user);
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                var response = new
+                {
+                    message = ex.InnerException,
+                };
+                return BadRequest(response);
             }
         }
 

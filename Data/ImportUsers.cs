@@ -57,7 +57,7 @@ public class ImportUsers
                         FirstName = values[2].Trim(),
                         LastName = values[3].Trim(),
                         UserName = values[4].Trim(),
-                        DateOfBirth = DateOnly.ParseExact(values[5].Trim(), "yyyy-MM-dd", CultureInfo.InvariantCulture)
+
                     };
 
                     users.Add(user);
