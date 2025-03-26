@@ -207,28 +207,63 @@ namespace Backend.Controllers
         [HttpGet("GetPosts")]
         public async Task<IActionResult> GetPostsAsync()
         {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId) || !int.TryParse(userId, out int parsedUserId))
+            {
+                return Unauthorized(new { message = "Invalid user ID in token" });
+            }
+
             try
             {
-                var posts = await _context.Posts.Select(p => new
+                // Fetch user interests efficiently
+                var userInterests = await _context.Intersts
+                    .Where(i => i.userId == parsedUserId)
+                    .Select(i => i.interst)
+                    .ToListAsync();
+
+                // Base query for posts with include to reduce database round trips
+                var postsQuery = _context.Posts
+                    .Include(p => p.User)
+                    .Include(p => p.PostLikes)
+                    .Include(p => p.PostComments)
+                    .Include(p => p.Images)
+                    .AsQueryable();
+
+                // Filter by interests if available
+                if (userInterests.Any())
                 {
-                    UserName = p.User.UserName,
-                    PostId = p.Id,
-                    Post = p.Content,
-                    LikeCount = p.PostLikes.Count,
-                    CommentCount = p.PostComments.Count,
-                    PostImages = p.Images.Select(pi => new
+                    postsQuery = postsQuery.Where(p => userInterests.Contains(p.Category));
+                }
+
+                // Project to DTO efficiently
+                var posts = await postsQuery
+                    .Select(p => new
                     {
-                        pi.Id,
-                        ImageData = Convert.ToBase64String(pi.Image)
-                    }).ToList()
-                }).ToListAsync();
+                        UserName = p.User.UserName,
+                        ProfilePicture = p.User.ProfilePicture,
+                        CreatedAt = p.CreatedAt,
+                        PostId = p.Id,
+                        Post = p.Content,
+                        LikeCount = p.PostLikes.Count,
+                        CommentCount = p.PostComments.Count,
+                        PostImages = p.Images.Select(pi => new
+                        {
+                            Id = pi.Id,
+                            ImageData = Convert.ToBase64String(pi.Image)
+                        }).ToList()
+                    })
+                    .AsSplitQuery() // Improve performance for complex queries
+                    .AsNoTracking() // Disable change tracking for read-only queries
+                    .ToListAsync();
+
                 return Ok(posts);
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.InnerException);
+                return BadRequest(new { message = ex.InnerException });
             }
         }
+
         [HttpGet("GetPostComments")]
         public async Task<IActionResult> GetPostCommentsAsync(int postId)
         {

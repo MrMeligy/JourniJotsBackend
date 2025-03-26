@@ -60,25 +60,7 @@ namespace Backend.Controllers
                 {
                     message = "User SignUp Successfully",
                     token = token,
-                    user = new
-                    {
-                        email = user.Email,
-                        userName = user.UserName,
-                        firstName = user.FirstName,
-                        lastName = user.LastName,
-                        profilePicture = user.ProfilePicture,
-                        intersts = user.Intersts.Select(i => i.interst).ToList(),
-                        follow = user.Follow.Select(f => f.UserId2).ToList(),
-                        followed = user.Followed.Select(f => f.UserId1).ToList(),
-                        posts = user.Posts.Select(p => new
-                        {
-                            id = p.Id,
-                            content = p.Content,
-                            date = p.CreatedAt,
-                            likes = p.PostLikes.Count,
-                            comments = p.PostComments.Count,
-                        }).ToList()
-                    }
+
                 };
 
                 return Ok(response);
@@ -120,13 +102,14 @@ namespace Backend.Controllers
                     await _context.SaveChangesAsync();
                     return Ok(new
                     {
-                        profilePic = user.ProfilePicture
+                        profilePic = user.ProfilePicture,
+                        message = "Profile Picture Uploaded Successfully"
                     });
                 }
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.InnerException);
+                return BadRequest(new { message = ex.InnerException });
             }
 
         }
@@ -140,7 +123,7 @@ namespace Backend.Controllers
             }
             try
             {
-                var user = await _context.Users
+                /*var user = await _context.Users
                     .Include(u => u.Intersts)
                     .Include(u => u.Follow)
                     .Include(u => u.Followed)
@@ -148,6 +131,8 @@ namespace Backend.Controllers
                     .Include(u => u.Comments)
                     .Include(u => u.Likes)
                     .Include(u => u.Trips)
+                    .FirstOrDefaultAsync(x => x.Email == dto.email);*/
+                var user = await _context.Users
                     .FirstOrDefaultAsync(x => x.Email == dto.email);
                 if (user == null || !Verify(dto.password, user.Password))
                 {
@@ -158,7 +143,7 @@ namespace Backend.Controllers
                 {
                     message = "User Logged In Successfully",
                     token = token,
-                    user = new
+                    /*user = new
                     {
                         email = user.Email,
                         userName = user.UserName,
@@ -176,7 +161,7 @@ namespace Backend.Controllers
                             likes = p.PostLikes.Count,
                             comments = p.PostComments.Count,
                         }).ToList()
-                    }
+                    }*/
 
                 };
                 return Ok(response);
@@ -213,7 +198,12 @@ namespace Backend.Controllers
                     user.Intersts.Add(new Intersts { userId = userId, interst = intrst });
                 }
                 await _context.SaveChangesAsync();
-                return Ok();
+                var response = new
+                {
+                    message = "Interests Added Successfully",
+                    intersts = user.Intersts.Select(i => i.interst).ToList()
+                };
+                return Ok(response);
             }
             catch (Exception ex)
             {
