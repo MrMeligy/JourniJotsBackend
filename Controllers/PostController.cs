@@ -46,6 +46,7 @@ namespace Backend.Controllers
                 {
                     userName = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value,
                     postId = post.Id,
+                    createdAt = post.CreatedAt,
                     Content = post.Content,
                     images = post.Images
                 };
@@ -53,7 +54,7 @@ namespace Backend.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.InnerException);
+                return BadRequest(new { message = ex.InnerException });
             }
         }
         [HttpPost("PostImage")]
@@ -90,7 +91,7 @@ namespace Backend.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.InnerException);
+                return BadRequest(new { message = ex.InnerException });
             }
         }
 
@@ -116,7 +117,7 @@ namespace Backend.Controllers
                 {
                     _context.PostLikes.Remove(liked);
                     await _context.SaveChangesAsync();
-                    return Ok("Unliked");
+                    return Ok(false);
                 }
                 var like = new Like
                 {
@@ -125,16 +126,12 @@ namespace Backend.Controllers
                 };
                 await _context.PostLikes.AddAsync(like);
                 _context.SaveChanges();
-                var response = new
-                {
-                    postId = postId,
-                    UserName = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value
-                };
-                return Ok(response);
+
+                return Ok(true);
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.InnerException);
+                return BadRequest(new { message = ex.InnerException });
             }
         }
         [HttpPost("Comment")]
@@ -165,13 +162,14 @@ namespace Backend.Controllers
                 {
                     postId = postId,
                     UserName = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value,
+                    profilePicture = user.ProfilePicture,
                     content = content
                 };
                 return Ok(response);
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.InnerException);
+                return BadRequest(new { message = ex.InnerException });
             }
         }
         [HttpGet("GetUserPosts")]
@@ -201,18 +199,96 @@ namespace Backend.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.InnerException);
+                return BadRequest(new { message = ex.InnerException });
             }
         }
         [HttpGet("GetPosts")]
-        public async Task<IActionResult> GetPostsAsync()
+        public async Task<IActionResult> GetPostsAsync(
+    [FromQuery] int pageSize = 10,
+    [FromQuery] DateTime? lastPostDate = null) // استقبال آخر تاريخ بوست في الصفحة السابقة
+        {
+            pageSize = Math.Clamp(pageSize, 1, 100);
+
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId) || !int.TryParse(userId, out int parsedUserId))
+            {
+                return Unauthorized(new { message = "Invalid user authentication" });
+            }
+
+            try
+            {
+                // Fetch user interests
+                var userInterests = await _context.Intersts
+                    .Where(i => i.userId == parsedUserId)
+                    .Select(i => i.interst)
+                    .ToListAsync();
+
+                // Base query for posts
+                var postsQuery = _context.Posts
+                    .Include(p => p.User)
+                    .Include(p => p.Images)
+                    .AsNoTracking()
+                    .AsQueryable();
+
+                // Filter by interests
+                if (userInterests.Any())
+                {
+                    postsQuery = postsQuery.Where(p => userInterests.Contains(p.Category));
+                }
+
+                // Apply Keyset Pagination: تحميل البوستات الأحدث من آخر بوست في الصفحة السابقة
+                if (lastPostDate.HasValue)
+                {
+                    postsQuery = postsQuery.Where(p => p.CreatedAt < lastPostDate.Value);
+                }
+
+                // ترتيب البوستات من الأحدث للأقدم
+                postsQuery = postsQuery.OrderByDescending(p => p.CreatedAt);
+
+                // جلب البيانات بحد أقصى `pageSize`
+                var posts = await postsQuery
+                    .Take(pageSize)
+                    .Select(p => new PostDto
+                    {
+                        UserName = p.User.UserName,
+                        ProfilePicture = p.User.ProfilePicture,
+                        CreatedAt = p.CreatedAt,
+                        PostId = p.Id,
+                        Content = p.Content,
+                        Category = p.Category,
+                        LikeCount = _context.PostLikes.Count(l => l.PostId == p.Id),
+                        CommentCount = _context.PostComments.Count(c => c.PostId == p.Id),
+                        IsLikedByCurrentUser = _context.PostLikes.Any(l => l.PostId == p.Id && l.UserId == parsedUserId),
+                        PostImages = p.Images.Select(pi => new PostImageDto
+                        {
+                            Id = pi.Id,
+                            ImageData = Convert.ToBase64String(pi.Image)
+                        }).ToList()
+                    })
+                    .ToListAsync();
+
+                // الحصول على آخر تاريخ بوست لهذه الصفحة لاستخدامه في الصفحة التالية
+                var newLastPostDate = posts.LastOrDefault()?.CreatedAt;
+
+                return Ok(new
+                {
+                    Posts = posts,
+                    LastPostDate = newLastPostDate // إرسال هذا التاريخ ليستخدم في الصفحة التالية
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while retrieving posts" });
+            }
+        }
+
+        /*public async Task<IActionResult> GetPostsAsync()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userId) || !int.TryParse(userId, out int parsedUserId))
             {
                 return Unauthorized(new { message = "Invalid user ID in token" });
             }
-
             try
             {
                 // Fetch user interests efficiently
@@ -220,7 +296,6 @@ namespace Backend.Controllers
                     .Where(i => i.userId == parsedUserId)
                     .Select(i => i.interst)
                     .ToListAsync();
-
                 // Base query for posts with include to reduce database round trips
                 var postsQuery = _context.Posts
                     .Include(p => p.User)
@@ -228,13 +303,11 @@ namespace Backend.Controllers
                     .Include(p => p.PostComments)
                     .Include(p => p.Images)
                     .AsQueryable();
-
                 // Filter by interests if available
                 if (userInterests.Any())
                 {
                     postsQuery = postsQuery.Where(p => userInterests.Contains(p.Category));
                 }
-
                 // Project to DTO efficiently
                 var posts = await postsQuery
                     .Select(p => new
@@ -246,6 +319,7 @@ namespace Backend.Controllers
                         Post = p.Content,
                         LikeCount = p.PostLikes.Count,
                         CommentCount = p.PostComments.Count,
+                        IsLikedByCurrentUser = p.PostLikes.Any(l => l.UserId == parsedUserId),
                         PostImages = p.Images.Select(pi => new
                         {
                             Id = pi.Id,
@@ -255,7 +329,6 @@ namespace Backend.Controllers
                     .AsSplitQuery() // Improve performance for complex queries
                     .AsNoTracking() // Disable change tracking for read-only queries
                     .ToListAsync();
-
                 return Ok(posts);
             }
             catch (Exception ex)
@@ -263,7 +336,7 @@ namespace Backend.Controllers
                 return BadRequest(new { message = ex.InnerException });
             }
         }
-
+*/
         [HttpGet("GetPostComments")]
         public async Task<IActionResult> GetPostCommentsAsync(int postId)
         {
@@ -286,7 +359,7 @@ namespace Backend.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.InnerException);
+                return BadRequest(new { message = ex.InnerException });
             }
         }
         [HttpDelete("DeletePost")]
