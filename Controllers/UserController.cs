@@ -145,6 +145,75 @@ namespace Backend.Controllers
                 return StatusCode(500, ex.InnerException?.Message);
             }
         }
+        [HttpGet("GetUserProfile")]
+        public async Task<IActionResult> GetUserProfileAsync(int userId)
+        {
+            var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int parsedUserId))
+            {
+                return Unauthorized(new { message = "Invalid user ID in token" });
+            }
+            var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == userId);
+            if (user == null)
+            {
+                return NotFound();
+            }
+            try
+            {
+                var profile = await _context.Users
+                    .Where(u => u.Id == userId)
+                    .Select(u => new
+                    {
+                        userId = u.Id,
+                        userName = u.UserName,
+                        profilePicture = u.ProfilePicture,
+                        Posts = u.Posts.Select(p => new
+                        {
+                            postId = p.Id,
+                            post = p.Content,
+                            likeCount = p.PostLikes.Count,
+                            commentCount = p.PostComments.Count,
+                            createdAt = p.CreatedAt,
+                            isLikedByCurrentUser = p.PostLikes.Any(l => l.UserId == parsedUserId),
+                            postImages = p.Images.Select(pi => new
+                            {
+                                pi.Id,
+                                imageData = Convert.ToBase64String(pi.Image)
+                            }).ToList()
+                        }).ToList(),
+                        interests = u.Intersts.Select(i => i.interst).ToList(),
+                        trips = u.Trips.Select(t => new
+                        {
+                            city = t.City,
+                            startDate = t.StartDate,
+                        }).ToList()
+                    })
+                    .FirstOrDefaultAsync(); return Ok(profile);
+
+                /*await _context.Posts.Where(x => x.UserId == userId).Select(p => new
+            {
+                UserName = p.User.UserName,
+                ProfilePicture = p.User.ProfilePicture,
+                PostId = p.Id,
+                Post = p.Content,
+                LikeCount = p.PostLikes.Count,
+                CommentCount = p.PostComments.Count,
+                CreatedAt = p.CreatedAt,
+                IsLikedByCurrentUser = _context.PostLikes.Any(l => l.PostId == p.Id && l.UserId == parsedUserId),
+                PostImages = p.Images.Select(pi => new
+                {
+                    pi.Id,
+                    ImageData = Convert.ToBase64String(pi.Image)
+                }).ToList()
+
+            }
+            ).ToListAsync();*/
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.InnerException });
+            }
+        }
 
         [HttpGet("AllUsers")]
         public async Task<IActionResult> GetAllUsersAsync()

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
 using System.Security.Claims;
 
 namespace Backend.Controllers
@@ -19,7 +20,7 @@ namespace Backend.Controllers
             _context = context;
         }
         [HttpPost("CreateTrip")]
-        public async Task<IActionResult> CreateTrip([FromBody] String title)
+        public async Task<IActionResult> CreateTrip([FromBody] CreateTripDto dto)
         {
             var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
             if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
@@ -31,7 +32,8 @@ namespace Backend.Controllers
                 var trip = new Trip
                 {
                     UserId = userId,
-                    Title = title,
+                    City = dto.City,
+                    StartDate = dto.StartDate
                 };
                 await _context.Trips.AddAsync(trip);
                 await _context.SaveChangesAsync();
@@ -40,7 +42,8 @@ namespace Backend.Controllers
                     UserId = trip.UserId,
                     UserName = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value,
                     tripId = trip.Id,
-                    Title = trip.Title
+                    city = trip.City,
+                    Date = trip.StartDate
                 };
                 return Ok(response);
             }
@@ -80,7 +83,7 @@ namespace Backend.Controllers
                 {
                     TripId = tripActivity.TripId,
                     ActivityId = tripActivity.ActivityId,
-                    TripTitle = tripActivity.Trip.Title,
+                    CityTrip = tripActivity.Trip.City,
                     userName = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value,
                     Activity = tripActivity.Activity.Name
                 };
@@ -123,7 +126,7 @@ namespace Backend.Controllers
                 {
                     TripId = tripHotel.TripId,
                     HotelId = tripHotel.HotelId,
-                    TripTitle = tripHotel.Trip.Title,
+                    CityTrip = tripHotel.Trip.City,
                     userName = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value,
                     Hotel = tripHotel.Hotel.Name
                 };
@@ -166,7 +169,7 @@ namespace Backend.Controllers
                 {
                     TripId = tripRest.TripId,
                     RestaurantId = tripRest.RestaurantId,
-                    TripTitle = tripRest.Trip.Title,
+                    CityTrip = tripRest.Trip.City,
                     userName = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value,
                     Restaurant = tripRest.Restaurant.Name
                 };
@@ -194,7 +197,7 @@ namespace Backend.Controllers
                     .Include(t => t.Hotels)
                     .Select(t => new
                     {
-                        TripTitle = t.Title,
+                        CityTrip = t.City,
                         Activities = t.Activities
                         .Select(ta => new
                         {
@@ -237,7 +240,7 @@ namespace Backend.Controllers
         }
 
         [HttpPut("UpdateTitle")]
-        public async Task<IActionResult> UpdateTitle(int tripId, [FromBody] string title)
+        public async Task<IActionResult> UpdateTitle(int tripId, [FromBody] string city)
         {
             var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
             if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
@@ -249,7 +252,7 @@ namespace Backend.Controllers
                 return NotFound("Trip Not Found");
             if (trip.UserId != userId)
                 return BadRequest("Not Allowed");
-            trip.Title = title;
+            trip.City = city;
             await _context.SaveChangesAsync();
             return Ok("Title Updated");
 

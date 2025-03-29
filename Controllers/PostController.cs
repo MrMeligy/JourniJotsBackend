@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
 using System.Security.Claims;
 using static System.Net.Mime.MediaTypeNames;
 
@@ -172,36 +173,7 @@ namespace Backend.Controllers
                 return BadRequest(new { message = ex.InnerException });
             }
         }
-        [HttpGet("GetUserPosts")]
-        public async Task<IActionResult> GetUserPostsAsync(int userId)
-        {
-            var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == userId);
-            if (user == null)
-            {
-                return NotFound();
-            }
-            try
-            {
-                var posts = await _context.Posts.Where(x => x.UserId == userId).Select(p => new
-                {
-                    UserName = p.User.UserName,
-                    PostId = p.Id,
-                    Post = p.Content,
-                    LikeCount = p.PostLikes.Count,
-                    CommentCount = p.PostComments.Count,
-                    PostImages = p.Images.Select(pi => new
-                    {
-                        pi.Id,
-                        ImageData = Convert.ToBase64String(pi.Image)
-                    }).ToList()
-                }).ToListAsync();
-                return Ok(posts);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { message = ex.InnerException });
-            }
-        }
+
         [HttpGet("GetPosts")]
         public async Task<IActionResult> GetPostsAsync(
     [FromQuery] int pageSize = 10,
