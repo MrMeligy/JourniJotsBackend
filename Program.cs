@@ -1,4 +1,5 @@
-
+﻿
+using Backend.Data;
 using Backend.Extensions;
 using Backend.Models;
 using Microsoft.EntityFrameworkCore;
@@ -50,9 +51,9 @@ namespace Backend
                 var services = scope.ServiceProvider;
                 var context = services.GetRequiredService<ApplicationDbContext>();
 
-                string filePath = "E:/Graduation Project/Models/egypt_tourism_posts_updated.csv";
+                string filePath = "E:/Graduation Project/data/Updated_WTD.csv";
 
-                var importer = new ImportPosts(context, filePath);
+                var importer = new ImportActivities(context, filePath);
                 await importer.ImportAsync();
             }*/
 

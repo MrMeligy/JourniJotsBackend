@@ -222,6 +222,7 @@ namespace Backend.Controllers
                     .Take(pageSize)
                     .Select(p => new PostDto
                     {
+                        userId = p.UserId.ToString(),
                         UserName = p.User.UserName,
                         ProfilePicture = p.User.ProfilePicture,
                         CreatedAt = p.CreatedAt,

@@ -61,7 +61,7 @@ namespace Backend.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, ex.InnerException?.Message);
+                return BadRequest(ex.InnerException?.Message);
             }
 
         }
@@ -167,6 +167,7 @@ namespace Backend.Controllers
                         userId = u.Id,
                         userName = u.UserName,
                         profilePicture = u.ProfilePicture,
+                        isFollowed = u.Followed.Any(f => f.UserId1 == parsedUserId),
                         Posts = u.Posts.Select(p => new
                         {
                             postId = p.Id,
