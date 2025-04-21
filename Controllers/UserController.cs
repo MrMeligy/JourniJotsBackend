@@ -259,6 +259,97 @@ namespace Backend.Controllers
             }
         }
 
+        [HttpGet("search")]
+        public async Task<IActionResult> Search(string name)
+        {
+            var users = await _context.Users
+                .Where(u => EF.Functions.Like(u.UserName, $"%{name}%"))
+                .Select(u => new
+                {
+                    Type = "User",
+                    Id = u.Id,
+                    Image = u.ProfilePicture,
+                    Name = u.UserName
+                }).ToListAsync();
+
+            var restaurants = await _context.Restaurants
+                .Where(r => EF.Functions.Like(r.Name, $"%{name}%"))
+                .Select(r => new
+                {
+                    Type = "Restaurant",
+                    Id = r.Id,
+                    Image = r.Image,
+                    Name = r.Name
+                }).ToListAsync();
+
+            var hotels = await _context.Hotels
+                .Where(h => EF.Functions.Like(h.Name, $"%{name}%"))
+                .Select(h => new
+                {
+                    Type = "Hotel",
+                    Id = h.Id,
+                    Image = h.Image,
+                    Name = h.Name
+                }).ToListAsync();
+
+            var activities = await _context.Activities
+                .Where(a => EF.Functions.Like(a.Name, $"%{name}%"))
+                .Select(a => new
+                {
+                    Type = "Activity",
+                    Id = a.Id,
+                    Image = a.Image,
+                    Name = a.Name
+                }).ToListAsync();
+
+            var results = users
+                .Concat<object>(restaurants)
+                .Concat(hotels)
+                .Concat(activities);
+
+            return Ok(results);
+        }
+
+        [HttpGet("searchByCity")]
+        public async Task<IActionResult> SearchByCity(string name, String city)
+        {
+            var restaurants = await _context.Restaurants
+                .Where(r => EF.Functions.Like(r.Name, $"%{name}%") && r.City == city)
+                .Select(r => new
+                {
+                    Type = "Restaurant",
+                    Id = r.Id,
+                    Image = r.Image,
+                    Name = r.Name
+                }).ToListAsync();
+
+            var hotels = await _context.Hotels
+                .Where(h => EF.Functions.Like(h.Name, $"%{name}%") && h.City == city)
+                .Select(h => new
+                {
+                    Type = "Hotel",
+                    Id = h.Id,
+                    Image = h.Image,
+                    Name = h.Name
+                }).ToListAsync();
+
+            var activities = await _context.Activities
+                .Where(a => EF.Functions.Like(a.Name, $"%{name}%") && a.City == city)
+                .Select(a => new
+                {
+                    Type = "Activity",
+                    Id = a.Id,
+                    Image = a.Image,
+                    Name = a.Name
+                }).ToListAsync();
+
+            var results = restaurants
+                .Concat(hotels)
+                .Concat(activities);
+
+            return Ok(results);
+        }
+
         [HttpGet("SearchUser")]
         public async Task<IActionResult> GetUserByNameAsync(string name)
         {
@@ -269,6 +360,7 @@ namespace Backend.Controllers
                 .Select(u => new
                 {
                     u.Id,
+                    u.ProfilePicture,
                     u.UserName,
 
                 })
@@ -290,11 +382,10 @@ namespace Backend.Controllers
                     .Select(r => new
                     {
                         r.Id,
+                        r.Image,
                         r.Name,
                         r.Rating,
                         r.RatingCount,
-                        r.Longitude,
-                        r.Latitude,
                         r.Category
                     }).ToListAsync();
                 return Ok(rests);
@@ -316,10 +407,9 @@ namespace Backend.Controllers
                     {
                         r.Id,
                         r.Name,
+                        r.Image,
                         r.Rating,
                         r.RatingCount,
-                        r.Longitude,
-                        r.Latitude
                     }).ToListAsync();
                 return Ok(hotels);
             }
@@ -338,11 +428,10 @@ namespace Backend.Controllers
                     .Select(r => new
                     {
                         r.Id,
+                        r.Image,
                         r.Name,
                         r.Rating,
                         r.RatingCount,
-                        r.Longitude,
-                        r.Latitude
                     }).ToListAsync();
                 return Ok(activities);
             }
@@ -351,6 +440,7 @@ namespace Backend.Controllers
                 return BadRequest(ex.Message);
             }
         }
+
 
         [HttpDelete("DeleteUser")]
         public async Task<IActionResult> DeleteUserASync(int id)
