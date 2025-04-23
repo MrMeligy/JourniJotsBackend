@@ -21,6 +21,9 @@ public class User
     [Required]
     [MaxLength(30)]
     public string UserName { get; set; }
+    [Required]
+    [MaxLength(30)]
+    public string City { get; set; }
 
     public ICollection<Intersts> Intersts { get; set; } = new List<Intersts>();
     public ICollection<Follow> Follow { get; set; } = new List<Follow>();

@@ -263,44 +263,44 @@ namespace Backend.Controllers
         public async Task<IActionResult> Search(string name)
         {
             var users = await _context.Users
-                .Where(u => EF.Functions.Like(u.UserName, $"%{name}%"))
+                .Where(u => EF.Functions.Like(u.UserName, $"{name}%"))
                 .Select(u => new
                 {
                     Type = "User",
                     Id = u.Id,
                     Image = u.ProfilePicture,
                     Name = u.UserName
-                }).ToListAsync();
+                }).Take(10).ToListAsync();
 
             var restaurants = await _context.Restaurants
-                .Where(r => EF.Functions.Like(r.Name, $"%{name}%"))
+                .Where(r => EF.Functions.Like(r.Name, $"{name}%"))
                 .Select(r => new
                 {
                     Type = "Restaurant",
                     Id = r.Id,
                     Image = r.Image,
                     Name = r.Name
-                }).ToListAsync();
+                }).Take(10).ToListAsync();
 
             var hotels = await _context.Hotels
-                .Where(h => EF.Functions.Like(h.Name, $"%{name}%"))
+                .Where(h => EF.Functions.Like(h.Name, $"{name}%"))
                 .Select(h => new
                 {
                     Type = "Hotel",
                     Id = h.Id,
                     Image = h.Image,
                     Name = h.Name
-                }).ToListAsync();
+                }).Take(10).ToListAsync();
 
             var activities = await _context.Activities
-                .Where(a => EF.Functions.Like(a.Name, $"%{name}%"))
+                .Where(a => EF.Functions.Like(a.Name, $"{name}%"))
                 .Select(a => new
                 {
                     Type = "Activity",
                     Id = a.Id,
                     Image = a.Image,
                     Name = a.Name
-                }).ToListAsync();
+                }).Take(10).ToListAsync();
 
             var results = users
                 .Concat<object>(restaurants)
@@ -314,34 +314,34 @@ namespace Backend.Controllers
         public async Task<IActionResult> SearchByCity(string name, String city)
         {
             var restaurants = await _context.Restaurants
-                .Where(r => EF.Functions.Like(r.Name, $"%{name}%") && r.City == city)
+                .Where(r => EF.Functions.Like(r.Name, $"{name}%") && r.City == city)
                 .Select(r => new
                 {
                     Type = "Restaurant",
                     Id = r.Id,
                     Image = r.Image,
                     Name = r.Name
-                }).ToListAsync();
+                }).Take(10).ToListAsync();
 
             var hotels = await _context.Hotels
-                .Where(h => EF.Functions.Like(h.Name, $"%{name}%") && h.City == city)
+                .Where(h => EF.Functions.Like(h.Name, $"{name}%") && h.City == city)
                 .Select(h => new
                 {
                     Type = "Hotel",
                     Id = h.Id,
                     Image = h.Image,
                     Name = h.Name
-                }).ToListAsync();
+                }).Take(10).ToListAsync();
 
             var activities = await _context.Activities
-                .Where(a => EF.Functions.Like(a.Name, $"%{name}%") && a.City == city)
+                .Where(a => EF.Functions.Like(a.Name, $"{name}%") && a.City == city)
                 .Select(a => new
                 {
                     Type = "Activity",
                     Id = a.Id,
                     Image = a.Image,
                     Name = a.Name
-                }).ToListAsync();
+                }).Take(10).ToListAsync();
 
             var results = restaurants
                 .Concat(hotels)
@@ -356,14 +356,14 @@ namespace Backend.Controllers
             try
             {
                 var users = await _context.Users
-                .Where(u => EF.Functions.Like(u.UserName, $"%{name}%"))
+                .Where(u => EF.Functions.Like(u.UserName, $"{name}%"))
                 .Select(u => new
                 {
                     u.Id,
                     u.ProfilePicture,
                     u.UserName,
 
-                })
+                }).Take(10)
                 .ToListAsync();
                 return Ok(users);
             }
@@ -378,7 +378,7 @@ namespace Backend.Controllers
             try
             {
                 var rests = await _context.Restaurants
-                    .Where(r => EF.Functions.Like(r.Name, $"%{name}%"))
+                    .Where(r => EF.Functions.Like(r.Name, $"{name}%"))
                     .Select(r => new
                     {
                         r.Id,
@@ -387,7 +387,7 @@ namespace Backend.Controllers
                         r.Rating,
                         r.RatingCount,
                         r.Category
-                    }).ToListAsync();
+                    }).Take(10).ToListAsync();
                 return Ok(rests);
             }
             catch (Exception ex)
@@ -402,7 +402,7 @@ namespace Backend.Controllers
             try
             {
                 var hotels = await _context.Hotels
-                    .Where(r => EF.Functions.Like(r.Name, $"%{name}%"))
+                    .Where(r => EF.Functions.Like(r.Name, $"{name}%"))
                     .Select(r => new
                     {
                         r.Id,
@@ -410,7 +410,7 @@ namespace Backend.Controllers
                         r.Image,
                         r.Rating,
                         r.RatingCount,
-                    }).ToListAsync();
+                    }).Take(10).ToListAsync();
                 return Ok(hotels);
             }
             catch (Exception ex)
@@ -424,7 +424,7 @@ namespace Backend.Controllers
             try
             {
                 var activities = await _context.Activities
-                    .Where(r => EF.Functions.Like(r.Name, $"%{name}%"))
+                    .Where(r => EF.Functions.Like(r.Name, $"{name}%"))
                     .Select(r => new
                     {
                         r.Id,
@@ -432,7 +432,7 @@ namespace Backend.Controllers
                         r.Name,
                         r.Rating,
                         r.RatingCount,
-                    }).ToListAsync();
+                    }).Take(10).ToListAsync();
                 return Ok(activities);
             }
             catch (Exception ex)
@@ -440,7 +440,45 @@ namespace Backend.Controllers
                 return BadRequest(ex.Message);
             }
         }
+        [HttpGet("GetPopularPlacesInCity")]
+        public async Task<IActionResult> GetActionResultAsync(string city)
+        {
+            var topActivities = await _context.Activities
+                .Where(a => a.City == city && a.Rating >= 4.5 && a.RatingCount > 50)
+                .Select(a => new
+                {
+                    Type = "Activity",
+                    a.Id,
+                    a.Name,
+                    a.Image,
+                    a.Rating,
+                    a.RatingCount,
+                    a.Address
+                }).Take(10)
+                .ToListAsync();
 
+            var topRestaurants = await _context.Restaurants
+                .Where(r => r.City == city && r.Rating >= 4.5 && r.RatingCount > 50)
+                .Select(r => new
+                {
+                    Type = "Restaurant",
+                    r.Id,
+                    r.Name,
+                    r.Image,
+                    r.Rating,
+                    r.RatingCount,
+                    r.Category,
+                    r.Address
+                }).Take(10)
+                  .ToListAsync();
+
+            var results = topActivities
+                .Concat<object>(topRestaurants)
+                .OrderByDescending(p => ((dynamic)p).RatingCount) // ترتيب حسب الأعلى تقييمًا
+                .ToList();
+
+            return Ok(results);
+        }
 
         [HttpDelete("DeleteUser")]
         public async Task<IActionResult> DeleteUserASync(int id)

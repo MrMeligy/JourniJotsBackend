@@ -46,17 +46,17 @@ namespace Backend
 
             app.MapControllers();
 
-            /*            using (var scope = app.Services.CreateScope())
-                        {
-                            var services = scope.ServiceProvider;
-                            var context = services.GetRequiredService<ApplicationDbContext>();
+            /*using (var scope = app.Services.CreateScope())
+            {
+                var services = scope.ServiceProvider;
+                var context = services.GetRequiredService<ApplicationDbContext>();
 
-                            string filePath = "E:/Graduation Project/so secret/image handler/updated_hotels.csv";
+                string filePath = "E:/Graduation Project/data/Updated_WTD.csv";
 
-                            var importer = new ImportHotels(context, filePath);
-                            await importer.ImportAsync();
-                        }
-            */
+                var importer = new ImportActivities(context, filePath);
+                await importer.ImportAsync();
+            }
+*/
             app.Run();
             return Task.CompletedTask;
         }

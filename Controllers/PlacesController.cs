@@ -18,49 +18,93 @@ namespace Backend.Controllers
             _context = context;
         }
 
-        [HttpGet("GetActivitesByCity")]
-        public async Task<IActionResult> GetActivitesByCity(string city)
+        [HttpGet("GetActivitiesByCity")]
+        public async Task<IActionResult> GetActivitiesByCity(string city, int pageNumber = 1, int pageSize = 10)
         {
-            var activities = await _context.Activities
+            var query = _context.Activities
                 .Where(a => a.City == city)
+                .OrderByDescending(a => a.RatingCount);
+
+            var totalCount = await query.CountAsync();
+
+            var activities = await query
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
 
-            if (activities == null || activities.Count == 0)
+            if (activities.Count == 0)
             {
                 return NotFound("No activities found for the specified city.");
             }
-
-            return Ok(activities);
+            bool hasNext = totalCount > pageNumber * pageSize;
+            return Ok(new
+            {
+                TotalCount = totalCount,
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                HasNext = hasNext,
+                Data = activities
+            });
         }
 
+
         [HttpGet("GetRestaurantsByCity")]
-        public async Task<IActionResult> GetRestaurantsByCity(string city)
+        public async Task<IActionResult> GetRestaurantsByCity(string city, int pageNumber = 1, int pageSize = 10)
         {
-            var restaurants = await _context.Restaurants
-                .Where(a => a.City == city)
+            var query = _context.Restaurants
+               .Where(r => r.City == city)
+               .OrderByDescending(r => r.RatingCount); // الترتيب من الأعلى للأقل
+
+            var totalCount = await query.CountAsync();
+
+            var restaurants = await query
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
 
-            if (restaurants == null || restaurants.Count == 0)
+            if (restaurants.Count == 0)
             {
-                return NotFound("No restaurants found for the specified city.");
+                return NotFound("No restaurats found for the specified city.");
             }
+            bool hasNext = totalCount > pageNumber * pageSize;
 
-            return Ok(restaurants);
+            return Ok(new
+            {
+                TotalCount = totalCount,
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                HasNext = hasNext,
+                Data = restaurants
+            });
         }
 
         [HttpGet("GetHotelsByCity")]
-        public async Task<IActionResult> GetHotelsByCity(string city)
+        public async Task<IActionResult> GetHotelsByCity(string city, int pageNumber = 1, int pageSize = 10)
         {
-            var hotels = await _context.Hotels
-                .Where(a => a.City == city)
+            var query = _context.Hotels
+               .Where(h => h.City == city)
+               .OrderByDescending(h => h.RatingCount); // الترتيب من الأعلى للأقل
+
+            var totalCount = await query.CountAsync();
+
+            var hotels = await query
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
 
-            if (hotels == null || hotels.Count == 0)
+            if (hotels.Count == 0)
             {
-                return NotFound("No restaurants found for the specified city.");
+                return NotFound("No hotels found for the specified city.");
             }
-
-            return Ok(hotels);
+            bool hasNext = totalCount > pageNumber * pageSize;
+            return Ok(new
+            {
+                TotalCount = totalCount,
+                PageNumber = pageNumber,
+                PageSize = pageSize, 
+                HasNext= hasNext,
+                Data = hotels
+            });
         }
         private bool ValidateUser()
         {

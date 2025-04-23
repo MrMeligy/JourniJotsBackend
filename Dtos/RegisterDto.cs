@@ -24,6 +24,10 @@ namespace Backend.Dtos
         [MaxLength(30, ErrorMessage = "User name cannot exceed 50 characters")]
         public string UserName { get; set; }
 
+        [Required(ErrorMessage = "Cityis Requierd")]
+        [MaxLength(30, ErrorMessage = "City cannot exceed 50 characters")]
+        public string City { get; set; }
+
 
 
     }

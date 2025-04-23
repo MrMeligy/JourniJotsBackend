@@ -49,6 +49,7 @@ namespace Backend.Controllers
                     Password = BCrypt.Net.BCrypt.HashPassword(dto.Password),
                     FirstName = dto.FirstName,
                     LastName = dto.LastName,
+                    City = dto.City,
 
                 };
 
