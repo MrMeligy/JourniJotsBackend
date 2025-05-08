@@ -78,7 +78,7 @@ namespace Backend.Controllers
 
 
         [HttpPost("UploadProfilePicture")]
-        public async Task<IActionResult> ProfilePic(IFormFile picture)
+        public async Task<IActionResult> ProfilePic(string picture)
         {
             var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
             if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
@@ -96,17 +96,14 @@ namespace Backend.Controllers
 
             try
             {
-                using (var stream = new MemoryStream())
+                user.ProfilePicture = picture;
+                await _context.SaveChangesAsync();
+                return Ok(new
                 {
-                    await picture.CopyToAsync(stream);
-                    user.ProfilePicture = stream.ToArray();
-                    await _context.SaveChangesAsync();
-                    return Ok(new
-                    {
-                        profilePic = user.ProfilePicture,
-                        message = "Profile Picture Uploaded Successfully"
-                    });
-                }
+                    profilePic = user.ProfilePicture,
+                    message = "Profile Picture Uploaded Successfully"
+                });
+
             }
             catch (Exception ex)
             {
@@ -144,25 +141,8 @@ namespace Backend.Controllers
                 {
                     message = "User Logged In Successfully",
                     token = token,
-                    /*user = new
-                    {
-                        email = user.Email,
-                        userName = user.UserName,
-                        firstName = user.FirstName,
-                        lastName = user.LastName,
-                        profilePicture = user.ProfilePicture,
-                        intersts = user.Intersts.Select(i => i.interst).ToList(),
-                        follow = user.Follow.Select(f => f.UserId2).ToList(),
-                        followed = user.Followed.Select(f => f.UserId1).ToList(),
-                        posts = user.Posts.Select(p => new
-                        {
-                            id = p.Id,
-                            content = p.Content,
-                            date = p.CreatedAt,
-                            likes = p.PostLikes.Count,
-                            comments = p.PostComments.Count,
-                        }).ToList()
-                    }*/
+                    ProfilePic = user.ProfilePicture,
+                    city = user.City.Trim(),
 
                 };
                 return Ok(response);
@@ -268,7 +248,7 @@ namespace Backend.Controllers
                 {
                     user.Password = BCrypt.Net.BCrypt.HashPassword(dto.Password); // Hash the password
                 }
-                if (picture != null)
+                /*if (picture != null)
                 {
                     using (var stream = new MemoryStream())
                     {
@@ -276,7 +256,7 @@ namespace Backend.Controllers
                         user.ProfilePicture = stream.ToArray();
                         await _context.SaveChangesAsync();
                     }
-                }
+                }*/
 
                 await _context.SaveChangesAsync();
                 return Ok(user);
@@ -313,7 +293,7 @@ namespace Backend.Controllers
             var token = new JwtSecurityToken(
                 claims: claims,
                 issuer: _configuration["JWT:Issuer"],
-                expires: DateTime.Now.AddDays(7),
+                expires: DateTime.Now.AddDays(70),
                 signingCredentials: credentials
                 );
             var _token = new JwtSecurityTokenHandler().WriteToken(token);

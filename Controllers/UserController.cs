@@ -66,6 +66,7 @@ namespace Backend.Controllers
 
         }
 
+
         [HttpPost("RateRestaurant")]
         public async Task<IActionResult> RateAsync([FromBody] RateDto dto)
         {
@@ -179,7 +180,7 @@ namespace Backend.Controllers
                             postImages = p.Images.Select(pi => new
                             {
                                 pi.Id,
-                                imageData = Convert.ToBase64String(pi.Image)
+                                imageData = pi.Image
                             }).ToList()
                         }).ToList(),
                         interests = u.Intersts.Select(i => i.interst).ToList(),
@@ -225,38 +226,6 @@ namespace Backend.Controllers
                 Followers = u.Followed.Count()
             }).ToListAsync();
             return Ok(users);
-        }
-        [HttpGet("UserById")]
-        public async Task<IActionResult> GetUserByIdAsync(int id)
-        {
-            try
-            {
-                var user = await _context.Users
-            .Include(u => u.Followed) // Include the Followed collection
-            .FirstOrDefaultAsync(x => x.Id == id);
-
-                if (user == null)
-                {
-                    return NotFound();
-                }
-
-                // Get the number of followers
-                int numberOfFollowers = user.Followed.Count;
-                List<Post> posts = _context.Posts.Where(p => p.UserId == id).ToList();
-                // Return the user along with the number of followers
-                var response = new
-                {
-                    ProfilePicture = user.ProfilePicture,
-                    posts = posts,
-                    NumberOfFollowers = numberOfFollowers
-                };
-
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, ex.InnerException?.Message);
-            }
         }
 
         [HttpGet("search")]

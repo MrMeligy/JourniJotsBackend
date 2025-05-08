@@ -5,7 +5,7 @@ public class User
 {
     [Required]
     public int Id { get; set; }
-    public byte[]? ProfilePicture { get; set; }
+    public string? ProfilePicture { get; set; }
     [Required]
     [EmailAddress]
     public string Email { get; set; }
@@ -21,7 +21,7 @@ public class User
     [Required]
     [MaxLength(30)]
     public string UserName { get; set; }
-    [Required]
+
     [MaxLength(30)]
     public string City { get; set; }
 

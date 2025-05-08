@@ -59,9 +59,9 @@ namespace Backend.Controllers
             }
         }
         [HttpPost("PostImage")]
-        public async Task<IActionResult> PostImageAsync(int postId, List<IFormFile> images)
+        public async Task<IActionResult> PostImageAsync([FromBody] PostImagesDto dto)
         {
-            var post = await _context.Posts.FirstOrDefaultAsync(x => x.Id == postId);
+            var post = await _context.Posts.FirstOrDefaultAsync(x => x.Id == dto.Id);
             if (post == null)
             {
                 return NotFound();
@@ -69,24 +69,30 @@ namespace Backend.Controllers
             try
             {
                 var postImages = new List<PostImage>();
-                if (images != null)
+                if (dto.ImagesUrl != null)
                 {
-                    foreach (var image in images)
+                    foreach (var image in dto.ImagesUrl)
                     {
-                        using (var stream = new MemoryStream())
+                        var postImage = new PostImage
                         {
-                            await image.CopyToAsync(stream);
-                            var postImage = new PostImage
-                            {
-                                Image = stream.ToArray(),
-                                PostId = postId,
-                            };
-                            postImages.Add(postImage);
-                        }
+                            Image = image,
+                            PostId = dto.Id,
+                        };
+                        postImages.Add(postImage);
+
                     }
                     await _context.PostImages.AddRangeAsync(postImages);
                     await _context.SaveChangesAsync();
-                    return Ok(postImages);
+                    var response = new
+                    {
+                        postId = dto.Id,
+                        images = postImages.Select(i => new PostImageDto
+                        {
+                            Id = i.Id,
+                            ImageData = i.Image
+                        }).ToList()
+                    };
+                    return Ok(response);
                 }
                 return BadRequest("There is No Pictures");
             }
@@ -235,7 +241,7 @@ namespace Backend.Controllers
                         PostImages = p.Images.Select(pi => new PostImageDto
                         {
                             Id = pi.Id,
-                            ImageData = Convert.ToBase64String(pi.Image)
+                            ImageData = pi.Image
                         }).ToList()
                     })
                     .ToListAsync();

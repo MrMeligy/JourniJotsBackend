@@ -197,6 +197,7 @@ namespace Backend.Controllers
                     .Include(t => t.Hotels)
                     .Select(t => new
                     {
+                        tripId = t.Id,
                         CityTrip = t.City,
                         Activities = t.Activities
                         .Select(ta => new

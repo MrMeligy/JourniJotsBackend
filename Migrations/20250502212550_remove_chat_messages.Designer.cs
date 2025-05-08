@@ -4,6 +4,7 @@ using Backend.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Backend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250502212550_remove_chat_messages")]
+    partial class remove_chat_messages
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -59,7 +62,7 @@ namespace Backend.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Activities", (string)null);
+                    b.ToTable("Activities");
                 });
 
             modelBuilder.Entity("Backend.Models.Comment", b =>
@@ -86,7 +89,7 @@ namespace Backend.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("PostComments", (string)null);
+                    b.ToTable("PostComments");
                 });
 
             modelBuilder.Entity("Backend.Models.Hotel", b =>
@@ -126,7 +129,7 @@ namespace Backend.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Hotels", (string)null);
+                    b.ToTable("Hotels");
                 });
 
             modelBuilder.Entity("Backend.Models.Like", b =>
@@ -141,7 +144,7 @@ namespace Backend.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("PostLikes", (string)null);
+                    b.ToTable("PostLikes");
                 });
 
             modelBuilder.Entity("Backend.Models.Post", b =>
@@ -170,7 +173,7 @@ namespace Backend.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Posts", (string)null);
+                    b.ToTable("Posts");
                 });
 
             modelBuilder.Entity("Backend.Models.PostImage", b =>
@@ -192,7 +195,7 @@ namespace Backend.Migrations
 
                     b.HasIndex("PostId");
 
-                    b.ToTable("PostImages", (string)null);
+                    b.ToTable("PostImages");
                 });
 
             modelBuilder.Entity("Backend.Models.Restaurant", b =>
@@ -236,7 +239,7 @@ namespace Backend.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Restaurants", (string)null);
+                    b.ToTable("Restaurants");
                 });
 
             modelBuilder.Entity("Backend.Models.Trip", b =>
@@ -262,7 +265,7 @@ namespace Backend.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Trips", (string)null);
+                    b.ToTable("Trips");
                 });
 
             modelBuilder.Entity("Backend.Models.Trip_Activity", b =>
@@ -277,7 +280,7 @@ namespace Backend.Migrations
 
                     b.HasIndex("ActivityId");
 
-                    b.ToTable("Trip_Activities", (string)null);
+                    b.ToTable("Trip_Activities");
                 });
 
             modelBuilder.Entity("Backend.Models.Trip_Hotel", b =>
@@ -292,7 +295,7 @@ namespace Backend.Migrations
 
                     b.HasIndex("HotelId");
 
-                    b.ToTable("Trip_Hotels", (string)null);
+                    b.ToTable("Trip_Hotels");
                 });
 
             modelBuilder.Entity("Backend.Models.Trip_Restaurant", b =>
@@ -307,7 +310,7 @@ namespace Backend.Migrations
 
                     b.HasIndex("RestaurantId");
 
-                    b.ToTable("Trip_Restaurants", (string)null);
+                    b.ToTable("Trip_Restaurants");
                 });
 
             modelBuilder.Entity("Follow", b =>
@@ -322,7 +325,7 @@ namespace Backend.Migrations
 
                     b.HasIndex("UserId2");
 
-                    b.ToTable("Followings", (string)null);
+                    b.ToTable("Followings");
                 });
 
             modelBuilder.Entity("Intersts", b =>
@@ -344,7 +347,7 @@ namespace Backend.Migrations
 
                     b.HasIndex("userId");
 
-                    b.ToTable("Intersts", (string)null);
+                    b.ToTable("Intersts");
                 });
 
             modelBuilder.Entity("User", b =>
@@ -388,7 +391,7 @@ namespace Backend.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Users", (string)null);
+                    b.ToTable("Users");
                 });
 
             modelBuilder.Entity("Backend.Models.Comment", b =>

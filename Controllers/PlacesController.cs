@@ -17,15 +17,27 @@ namespace Backend.Controllers
         {
             _context = context;
         }
+        [HttpGet("PlacesCount")]
+        public async Task<IActionResult> GetPlacesCount(string city)
+        {
+            var activitiesCount = await _context.Activities.CountAsync(a => a.City == city);
+            var restaurantsCount = await _context.Restaurants.CountAsync(r => r.City == city);
+            var hotelsCount = await _context.Hotels.CountAsync(h => h.City == city);
 
+            return Ok(new
+            {
+                ActivitiesCount = activitiesCount,
+                RestaurantsCount = restaurantsCount,
+                HotelsCount = hotelsCount
+            });
+        }
         [HttpGet("GetActivitiesByCity")]
         public async Task<IActionResult> GetActivitiesByCity(string city, int pageNumber = 1, int pageSize = 10)
         {
             var query = _context.Activities
                 .Where(a => a.City == city)
                 .OrderByDescending(a => a.RatingCount);
-
-            var totalCount = await query.CountAsync();
+            var activitiesCount = await query.CountAsync();
 
             var activities = await query
                 .Skip((pageNumber - 1) * pageSize)
@@ -36,10 +48,10 @@ namespace Backend.Controllers
             {
                 return NotFound("No activities found for the specified city.");
             }
-            bool hasNext = totalCount > pageNumber * pageSize;
+            bool hasNext = activitiesCount > pageNumber * pageSize;
             return Ok(new
             {
-                TotalCount = totalCount,
+
                 PageNumber = pageNumber,
                 PageSize = pageSize,
                 HasNext = hasNext,
@@ -101,8 +113,8 @@ namespace Backend.Controllers
             {
                 TotalCount = totalCount,
                 PageNumber = pageNumber,
-                PageSize = pageSize, 
-                HasNext= hasNext,
+                PageSize = pageSize,
+                HasNext = hasNext,
                 Data = hotels
             });
         }
