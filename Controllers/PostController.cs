@@ -39,6 +39,7 @@ namespace Backend.Controllers
                 {
                     UserId = userId,
                     Content = dto.Content,
+                    Category = dto.Category,
                     CreatedAt = DateTime.Now,
                 };
                 await _context.Posts.AddAsync(post);
@@ -261,6 +262,7 @@ namespace Backend.Controllers
             }
         }
 
+
         /*public async Task<IActionResult> GetPostsAsync()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -339,6 +341,34 @@ namespace Backend.Controllers
             catch (Exception ex)
             {
                 return BadRequest(new { message = ex.InnerException });
+            }
+        }
+        [HttpPatch("EditPost")]
+        public async Task<IActionResult> EditPostAsync(int postId, [FromBody] EditPostDto dto)
+        {
+            var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+            {
+                return Unauthorized(new { message = "Invalid user ID in token" });
+            }
+            var post = await _context.Posts.FirstOrDefaultAsync(x => x.Id == postId);
+            if (post == null)
+            {
+                return NotFound();
+            }
+            if (post.UserId != userId)
+            {
+                return BadRequest("you can't Edit This Post");
+            }
+            try
+            {
+                post.Category = dto.category;
+                await _context.SaveChangesAsync();
+                return Ok("Category Added: " + post.Category);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.InnerException);
             }
         }
         [HttpDelete("DeletePost")]
